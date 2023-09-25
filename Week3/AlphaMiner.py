@@ -3,6 +3,13 @@ from itertools import tee, islice, chain
 import xml.etree.ElementTree as ET
 import datetime
 
+# from stackoverflow
+def previous_and_next(some_iterable):
+    prevs, items, nexts = tee(some_iterable, 3)
+    prevs = chain([None], prevs)
+    nexts = chain(islice(nexts, 1, None), [None])
+    return zip(prevs, items, nexts)
+
 
 class PetriNet():
 
@@ -59,8 +66,6 @@ class PetriNet():
         for transition in self.transitions:
             if transition[0] == name:
                 return transition[1]
-            
-        self.transitions.append()
 
 
 def read_from_file(filename):
@@ -111,5 +116,79 @@ def read_from_file(filename):
 
     return dict
 
+def dependency_graph_file(log):
+    dg = {}
+
+    endvalue = "issue completion"
+    keytotrack = "concept:name"
+
+    # create structure
+    for key, value in log.items():
+        for _, activity in value.items():
+
+            dgvalue = activity[keytotrack]
+            if dgvalue not in dg:
+                dg[dgvalue] = {}
+
+            for _, activity2 in value.items():
+                dgvalue2 = activity2[keytotrack]
+                if dgvalue2 not in dg[dgvalue]:
+                    dg[dgvalue][dgvalue2] = 0
+
+    # add relations
+    templist = []
+    for key, value in log.items():
+        for _, activities in value.items():
+            templist.append(activities[keytotrack])
+
+    for prev, item, nxt in previous_and_next(templist):
+        if (item == endvalue):
+            continue
+
+        if nxt:
+            dg[item][nxt] += 1
+
+    # cleanup
+    for key, value in list(dg.items()):
+        for k, v in list(value.items()):
+            if v == 0:
+                value.pop(k)
+        
+        if value == {}:
+            dg.pop(key)
+
+    return dg
+
+
 def alpha(log):
-    print(log)
+    petri_net = PetriNet()
+
+    # get dependency graph
+    temp_dependency_graph = dependency_graph_file(log)
+    print(temp_dependency_graph)
+
+    transition_id = 0
+    for origin, targets in temp_dependency_graph:
+        
+        # add unique places
+        if origin not in petri_net.places:
+            petri_net.add_place(origin)
+
+        for target, amt in targets:
+            if target not in petri_net.places:
+                petri_net.add_place(target)
+
+
+        # add transitions
+        for target, amt in targets:
+            if target not in petri_net.transitions:
+                petri_net.add_transition(target, transition_id)
+                transition_id += 1
+
+
+        # add edges
+        for edgeorigin, edgetarget in petri_net.edges:
+            
+            
+
+    return petri_net
