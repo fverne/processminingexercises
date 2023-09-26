@@ -59,7 +59,7 @@ class PetriNet():
 
         for edge in self.edges:
             if edge[1] == transition:
-                while (self.markings.count(edge[0])):
+                while (self.markings.count(edge[0]) != 0):
                     self.markings.remove(edge[0])
 
     def transition_name_to_id(self, name):
@@ -70,6 +70,12 @@ class PetriNet():
 
 def read_from_file(filename):
     
+    # print(filename)
+    # if filename == "loan-process.xes":
+    #     with open(filename, 'r') as f:
+    #         contents = f.read()
+    #         print(contents)
+
     # init
     dict = {}
 
@@ -119,7 +125,9 @@ def read_from_file(filename):
 def dependency_graph_file(log):
     dg = {}
 
-    endvalue = "issue completion"
+    log = dict(sorted(log.items()))
+
+    endvalue = None
     keytotrack = "concept:name"
 
     # create structure
@@ -132,6 +140,8 @@ def dependency_graph_file(log):
 
             for _, activity2 in value.items():
                 dgvalue2 = activity2[keytotrack]
+                endvalue = dgvalue2
+
                 if dgvalue2 not in dg[dgvalue]:
                     dg[dgvalue][dgvalue2] = 0
 
@@ -167,28 +177,25 @@ def alpha(log):
     temp_dependency_graph = dependency_graph_file(log)
     print(temp_dependency_graph)
 
-    transition_id = 0
-    for origin, targets in temp_dependency_graph:
-        
-        # add unique places
+    transition_prefix = "-"
+    for origin, targets in temp_dependency_graph.items():
+
+        # add unique place
         if origin not in petri_net.places:
             petri_net.add_place(origin)
 
-        for target, amt in targets:
+        for target, amt in targets.items():
+            if len(petri_net.markings) == 0:
+                petri_net.add_marking(origin)
+
             if target not in petri_net.places:
                 petri_net.add_place(target)
 
+            petri_net.add_transition(target, transition_prefix+target)   
 
-        # add transitions
-        for target, amt in targets:
-            if target not in petri_net.transitions:
-                petri_net.add_transition(target, transition_id)
-                transition_id += 1
+            #add edges
+            petri_net.add_edge(origin, transition_prefix+target)
+            petri_net.add_edge(transition_prefix+target, target)
 
-
-        # add edges
-        for edgeorigin, edgetarget in petri_net.edges:
-            
-            
 
     return petri_net
