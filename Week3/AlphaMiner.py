@@ -175,27 +175,34 @@ def alpha(log):
 
     # get dependency graph
     temp_dependency_graph = dependency_graph_file(log)
-    print(temp_dependency_graph)
+    # print(temp_dependency_graph)
 
-    transition_prefix = "-"
+    place_id = 1
+    transition_id = -1
     for origin, targets in temp_dependency_graph.items():
+        if len(petri_net.markings) == 0:
+            petri_net.add_marking(1)
+            petri_net.add_transition(origin, 0)
+            petri_net.add_edge(place_id, 0)
+            petri_net.add_edge(0, place_id + 1)
+
 
         # add unique place
-        if origin not in petri_net.places:
-            petri_net.add_place(origin)
+        if place_id not in petri_net.places:
+            petri_net.add_place(place_id)
+
 
         for target, amt in targets.items():
-            if len(petri_net.markings) == 0:
-                petri_net.add_marking(origin)
-
-            if target not in petri_net.places:
-                petri_net.add_place(target)
-
-            petri_net.add_transition(target, transition_prefix+target)   
+            petri_net.add_transition(target, transition_id)    
 
             #add edges
-            petri_net.add_edge(origin, transition_prefix+target)
-            petri_net.add_edge(transition_prefix+target, target)
+            petri_net.add_edge(place_id + 1, transition_id)
+            petri_net.add_edge(transition_id, place_id + 2)
+
+            transition_id -= 1
+
+
+        place_id +=1
 
 
     return petri_net
